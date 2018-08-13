@@ -14,50 +14,36 @@ def model_fn(features, labels, mode):
 	# Input Layer
 	input_layer = tf.reshape(features["x"], [-1, width, height, channels])
 
-	conv1 = tf.layers.conv2d(inputs=input_layer, filters=64, kernel_size=[3, 3], padding="same", activation=tf.nn.relu)
+	conv1 = tf.layers.conv2d(inputs=input_layer, filters=32, kernel_size=[3, 3], padding="same", activation=tf.nn.relu)
 	conv1_norm = tf.layers.batch_normalization(conv1, training=(mode == tf.estimator.ModeKeys.TRAIN))
+	pool1 = tf.layers.max_pooling2d(inputs=conv1_norm, pool_size=[2, 2], strides=2)
 
-	conv2 = tf.layers.conv2d(inputs=conv1_norm, filters=64, kernel_size=[3, 3], padding="same", activation=tf.nn.relu)
+	conv2 = tf.layers.conv2d(inputs=pool1, filters=64, kernel_size=[3, 3], padding="same", activation=tf.nn.relu)
 	conv2_norm = tf.layers.batch_normalization(conv2, training=(mode == tf.estimator.ModeKeys.TRAIN))
+	pool2 = tf.layers.max_pooling2d(inputs=conv2_norm, pool_size=[2, 2], strides=2)
 
-	pool1 = tf.layers.max_pooling2d(inputs=conv2_norm, pool_size=[2, 2], strides=2)
-
-	conv3 = tf.layers.conv2d(inputs=pool1, filters=128, kernel_size=[3, 3], padding="same", activation=tf.nn.relu)
+	conv3 = tf.layers.conv2d(inputs=pool2, filters=128, kernel_size=[3, 3], padding="same", activation=tf.nn.relu)
 	conv3_norm = tf.layers.batch_normalization(conv3, training=(mode == tf.estimator.ModeKeys.TRAIN))
+	pool3 = tf.layers.max_pooling2d(inputs=conv3_norm, pool_size=[2, 2], strides=2)
 
-	conv4 = tf.layers.conv2d(inputs=conv3_norm, filters=128, kernel_size=[3, 3], padding="same", activation=tf.nn.relu)
-	conv4_norm = tf.layers.batch_normalization(conv4, training=(mode == tf.estimator.ModeKeys.TRAIN))
+	# conv4 = tf.layers.conv2d(inputs=pool3, filters=256, kernel_size=[3, 3], padding="same", activation=tf.nn.relu)
+	# conv4_norm = tf.layers.batch_normalization(conv4, training=(mode == tf.estimator.ModeKeys.TRAIN))
+	# pool4 = tf.layers.max_pooling2d(inputs=conv4_norm, pool_size=[2, 2], strides=2)
 
-	pool2 = tf.layers.max_pooling2d(inputs=conv4_norm, pool_size=[2, 2], strides=2)
+	# conv5 = tf.layers.conv2d(inputs=pool4, filters=512, kernel_size=[3, 3], padding="same", activation=tf.nn.relu)
+	# conv5_norm = tf.layers.batch_normalization(conv5, training=(mode == tf.estimator.ModeKeys.TRAIN))
+	# pool5 = tf.layers.max_pooling2d(inputs=conv5_norm, pool_size=[2, 2], strides=2)
 
-	conv5 = tf.layers.conv2d(inputs=pool2, filters=256, kernel_size=[3, 3], padding="same", activation=tf.nn.relu)
-	conv5_norm = tf.layers.batch_normalization(conv5, training=(mode == tf.estimator.ModeKeys.TRAIN))
+	output = pool3
 
-	conv6 = tf.layers.conv2d(inputs=conv5_norm, filters=256, kernel_size=[3, 3], padding="same", activation=tf.nn.relu)
-	conv6_norm = tf.layers.batch_normalization(conv6, training=(mode == tf.estimator.ModeKeys.TRAIN))
-
-	pool3 = tf.layers.max_pooling2d(inputs=conv6_norm, pool_size=[2, 2], strides=2)
-
-	conv7 = tf.layers.conv2d(inputs=pool3, filters=512, kernel_size=[3, 3], padding="same", activation=tf.nn.relu)
-	conv7_norm = tf.layers.batch_normalization(conv7, training=(mode == tf.estimator.ModeKeys.TRAIN))
-
-	conv8 = tf.layers.conv2d(inputs=conv7_norm, filters=512, kernel_size=[3, 3], padding="same", activation=tf.nn.relu)
-	conv8_norm = tf.layers.batch_normalization(conv8, training=(mode == tf.estimator.ModeKeys.TRAIN))
-
-	pool4 = tf.layers.max_pooling2d(inputs=conv8_norm, pool_size=[2, 2], strides=2)
-
+	print(output.shape)
 	# Dense Layer
-	flat = tf.reshape(pool4, [-1, pool4.shape[1] * pool4.shape[2] * pool4.shape[3]])
+	flat = tf.reshape(output, [-1, output.shape[1] * output.shape[2] * output.shape[3]])
 
 	dense1 = tf.layers.dense(inputs=flat, units=1024, activation=tf.nn.relu)
-	dropout1 = tf.layers.dropout(inputs=dense1, rate=0.2, training=mode == tf.estimator.ModeKeys.TRAIN)
-	dense2 = tf.layers.dense(inputs=dropout1, units=1024, activation=tf.nn.relu)
-	dropout2 = tf.layers.dropout(inputs=dense2, rate=0.2, training=mode == tf.estimator.ModeKeys.TRAIN)
-	dense3 = tf.layers.dense(inputs=dropout2, units=1024, activation=tf.nn.relu)
-	dropout3 = tf.layers.dropout(inputs=dense3, rate=0.2, training=mode == tf.estimator.ModeKeys.TRAIN)	
-
+	dropout1 = tf.layers.dropout(inputs=dense1, rate=0.2, training=mode == tf.estimator.ModeKeys.TRAIN)	
 	# Logits Layer
-	logits = tf.layers.dense(inputs=dropout3, units=num_classes)
+	logits = tf.layers.dense(inputs=dropout1, units=num_classes)
 
 	predictions = {
 	  # Generate predictions (for PREDICT and EVAL mode)

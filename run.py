@@ -31,7 +31,7 @@ weights_path = "weights"
 
 def train(model):
 	epochs = 100
-	batch_size = 20
+	batch_size = 2
 	features, target = image_utils.load_data("data/train", labels, image_width, image_height, extension)
 	train_data, eval_data, train_labels, eval_labels = train_test_split(features, target, test_size=0.2)
 
@@ -64,15 +64,24 @@ def train(model):
 
 
 def evaluate(model):
-	batch_size = 5
-	x_val, y_val = image_utils.load_data("data/validation", labels, image_width, image_height, extension)
-	scores = model.evaluate(x_val, y_val, batch_size=batch_size)
-	print("\nAccuracy: {}".format(scores[1] * 100))
+	validation_features, validation_target = image_utils.load_data("data/validation", labels, image_width, image_height, extension)
 
+	classifier = tf.estimator.Estimator(model_fn=model, model_dir=weights_path)
+
+	validation_input_fn = tf.estimator.inputs.numpy_input_fn(
+		x={"x": validation_features},
+		y=np.asarray(validation_target, dtype=np.int32),
+		num_epochs=1,
+		shuffle=False)
+
+	validation_results = classifier.evaluate(input_fn=validation_input_fn)
+	print(validation_results)
 
 def predict(model, path):
 	stepSize = 100
 	batch_size = 1
+
+	classifier = tf.estimator.Estimator(model_fn=model, model_dir=weights_path)
 
 	image = image_utils.load_file(path)
 	image = image[:, :, :channels]
@@ -94,8 +103,7 @@ def predict(model, path):
 	for (x, y, window) in image_utils.sliding_window(image, stepSize=stepSize, windowSize=(image_width, image_height)):
 
 		if window.shape[0] != image_height or window.shape[1] != image_width:
-			print
-			x, y, window.shape
+			print(x, y, window.shape)
 			continue
 
 		batch.append({
@@ -115,8 +123,13 @@ def predict(model, path):
 				positions.append((b.get("x"), b.get("y")))
 			windows = np.array(windows)
 
-			pred = model.predict_classes(windows)
-			pred_prob = model.predict_proba(windows)
+			predict_input_fn = tf.estimator.inputs.numpy_input_fn(
+				x={"x": windows},
+			)
+
+			pred = classifier.predict(input_fn=predict_input_fn)
+			print(pred)
+			pred_prob = [0]
 
 			for window, position, label, prob in zip(windows, positions, pred, pred_prob):
 				label_class = labels.keys()[labels.values().index(label)]
