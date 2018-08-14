@@ -108,3 +108,5 @@ weights/
 weights/*
 data/
 data/*
+.idea/
+.idea/*
