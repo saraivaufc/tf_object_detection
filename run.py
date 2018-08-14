@@ -21,14 +21,13 @@ extension = '.tif'
 labels = {
     'pivot': 0,
     'infra': 1,
-    'infra2': 2,
 }
 num_classes = len(labels)
 weights_path = "weights"
 
 
 def train(model, epochs=200, batch_size=20):
-    features, target = image_utils.load_data("data/train", labels, image_width, image_height, extension)
+    features, target = image_utils.load_data("/mnt/data/train", labels, image_width, image_height, extension, dargumentation_enabled=True)
     train_data, eval_data, train_labels, eval_labels = train_test_split(features, target, test_size=0.2)
 
     print('Split train: ', len(train_data))

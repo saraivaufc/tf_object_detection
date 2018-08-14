@@ -41,7 +41,7 @@ def dargumentation(image):
     return images
 
 
-def load_data(directory, labels, width, height, extension, dargumentation=False):
+def load_data(directory, labels, width, height, extension, dargumentation_enabled=False):
     npz_path = directory + '.npz'
 
     if os.path.isfile(npz_path):
@@ -62,7 +62,7 @@ def load_data(directory, labels, width, height, extension, dargumentation=False)
             for f in tqdm(files, miniters=10):
                 path = "{directory}/{file}".format(directory=label_directory, file=f)
                 image = load_file(path, width, height)
-                if dargumentation:
+                if dargumentation_enabled:
                     for i in dargumentation(image):
                         x.append(i)
                         y.append(label_value)
