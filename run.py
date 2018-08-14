@@ -14,8 +14,8 @@ from skimage import io, exposure
 import models
 import image_utils
 
-image_width = 128
-image_height = 128
+image_width = 256
+image_height = 256
 channels = 4
 extension = '.tif'
 labels = {
@@ -27,7 +27,7 @@ num_classes = len(labels)
 weights_path = "weights"
 
 
-def train(model, epochs=100, batch_size=20):
+def train(model, epochs=200, batch_size=20):
     features, target = image_utils.load_data("data/train", labels, image_width, image_height, extension)
     train_data, eval_data, train_labels, eval_labels = train_test_split(features, target, test_size=0.2)
 
@@ -74,7 +74,14 @@ def evaluate(model):
 
 def predict(model, path):
     stepSize = 100
-    batch_size = 20
+    batch_size = 5
+    windows_list = (
+        [int(image_width * 0.25), int(image_height * 0.25)],
+        [int(image_width * 0.5), int(image_height * 0.5)],
+        [image_width, image_height],
+        [int(image_width * 1.5), int(image_height * 1.5)],
+        [int(image_width * 1.75), int(image_height * 1.75)],
+    )
 
     classifier = tf.estimator.Estimator(model_fn=model, model_dir=weights_path)
 
@@ -95,62 +102,68 @@ def predict(model, path):
     batch = []
     count = 1
 
-    for (x, y, window) in image_utils.sliding_window(image, stepSize=stepSize, windowSize=(image_width, image_height)):
+    for width, height in windows_list:
+        print(width, height)
+        for (x, y, window) in image_utils.sliding_window(image,
+                                                         stepSize=stepSize,
+                                                         windowSize=(width, height),
+                                                         windowResize=(image_width, image_height)):
 
-        if window.shape[0] != image_height or window.shape[1] != image_width:
-            continue
+            if window.shape[0] != image_height or window.shape[1] != image_width:
+                continue
 
-        batch.append({
-            "window": window,
-            "x": x,
-            "y": y
-        })
+            batch.append({
+                "window": window,
+                "x": x,
+                "y": y
+            })
 
-        if len(batch) >= batch_size:
-            fig.savefig('results/{0}.png'.format(count))
-            count += 1
+            if len(batch) >= batch_size:
+                fig.savefig('results/{0}.png'.format(count))
+                count += 1
 
-            windows = []
-            positions = []
-            for b in batch:
-                windows.append(b.get("window"))
-                positions.append((b.get("x"), b.get("y")))
-            windows = np.array(windows)
+                windows = []
+                positions = []
+                for b in batch:
+                    windows.append(b.get("window"))
+                    positions.append((b.get("x"), b.get("y")))
+                windows = np.array(windows)
 
-            predict_input_fn = tf.estimator.inputs.numpy_input_fn(
-                x={"x": np.asarray(windows, dtype=np.float32)},
-                shuffle=False,
-                num_epochs=1,
-            )
+                predict_input_fn = tf.estimator.inputs.numpy_input_fn(
+                    x={"x": np.asarray(windows, dtype=np.float32)},
+                    shuffle=False,
+                    num_epochs=1,
+                )
 
-            results = classifier.predict(input_fn=predict_input_fn)
-            pred = []
-            pred_prob = []
-            for p in results:
-                pred.append(p["classes"])
-                pred_prob.append(p["probabilities"])
+                results = classifier.predict(input_fn=predict_input_fn)
+                pred = []
+                pred_prob = []
+                for p in results:
+                    print(p)
+                    pred.append(p["classes"])
+                    pred_prob.append(p["probabilities"])
 
-            for window, position, label, prob in zip(windows, positions, pred, pred_prob):
-                prediction = prob[np.argmax(prob)]
-                print("Label: {0} --> Prediction: {1}".format(label, prediction))
+                for window, position, label, prob in zip(windows, positions, pred, pred_prob):
+                    prediction = prob[np.argmax(prob)]
+                    print("Label: {0} --> Prediction: {1}".format(label, prediction))
 
-                if label == labels.get("pivot"): # and prediction > 0.90:
-                    rect = patches.Rectangle((position[0], position[1]), image_width, image_height, linewidth=1,
-                                             edgecolor='r', color='y', facecolor='none')
-                else:
-                    rect = patches.Rectangle((position[0], position[1]), image_width, image_height, linewidth=1,
-                                             edgecolor='r', facecolor='none')
+                    if label == labels.get("pivot") and prediction > 0.50:
+                        rect = patches.Rectangle((position[0], position[1]), width, height, linewidth=1,
+                                                 edgecolor='r', color='y', facecolor='none')
+                    else:
+                        rect = patches.Rectangle((position[0], position[1]), width, height, linewidth=1,
+                                                 edgecolor='r', facecolor='none')
 
-                ax.add_patch(rect)
+                    ax.add_patch(rect)
 
-            batch = []
+                batch = []
 
-        # window = window[-1][:,:,:3]
-        # print window.shape
-        # plt.axis("off")
-        # plt.imshow(window.reshape((window.shape[0], window.shape[1])), cmap=plt.cm.nipy_spectral, interpolation='nearest')
-        # plt.show()
-        fig.canvas.draw()
+            # window = window[-1][:,:,:3]
+            # print window.shape
+            # plt.axis("off")
+            # plt.imshow(window.reshape((window.shape[0], window.shape[1])), cmap=plt.cm.nipy_spectral, interpolation='nearest')
+            # plt.show()
+            fig.canvas.draw()
 
 
 mode = sys.argv[1]

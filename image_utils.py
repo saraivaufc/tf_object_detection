@@ -41,7 +41,7 @@ def dargumentation(image):
     return images
 
 
-def load_data(directory, labels, width, height, extension):
+def load_data(directory, labels, width, height, extension, dargumentation=False):
     npz_path = directory + '.npz'
 
     if os.path.isfile(npz_path):
@@ -62,9 +62,14 @@ def load_data(directory, labels, width, height, extension):
             for f in tqdm(files, miniters=10):
                 path = "{directory}/{file}".format(directory=label_directory, file=f)
                 image = load_file(path, width, height)
-                for i in dargumentation(image):
-                    x.append(i)
+                if dargumentation:
+                    for i in dargumentation(image):
+                        x.append(i)
+                        y.append(label_value)
+                else:
+                    x.append(image)
                     y.append(label_value)
+
 
         x = np.array(x, np.float32)
         y = np.array(y, np.uint8)
@@ -73,11 +78,12 @@ def load_data(directory, labels, width, height, extension):
         return x, y
 
 
-def sliding_window(image, stepSize, windowSize):
+def sliding_window(image, stepSize, windowSize, windowResize=None):
     # slide a window across the image
     for y in range(0, image.shape[0], stepSize):
         for x in range(0, image.shape[1], stepSize):
             # yield the current window
             window = image[y:y + windowSize[1], x:x + windowSize[0]]
-            # window = resize(window, (windowSize[0], windowSize[1]))
+            if(windowResize):
+                window = resize(window, (windowResize[0], windowResize[1]))
             yield (x, y, window)
