@@ -10,6 +10,7 @@ from skimage.filters import sobel
 from skimage.transform import resize, rotate
 from skimage import exposure
 from tqdm import tqdm
+import h5py
 
 
 def load_file(path, width=None, height=None):
@@ -28,9 +29,6 @@ def load_file(path, width=None, height=None):
     if width and height:
         image = resize(image, (width, height))
 
-    # plt.imshow(image[: , : , 0:3])
-    # plt.show()
-
     return image
 
 
@@ -41,22 +39,21 @@ def dargumentation(image):
     return images
 
 
-def load_data(directory, labels, width, height, extension, dargumentation_enabled=False):
-    npz_path = directory + '.npz'
+def load_data(directory, classes, width, height, extension, dargumentation_enabled=False):
+    data_path = directory + '.h5'
 
-    if os.path.isfile(npz_path):
-        print("Reading from cache " + npz_path + "...")
-        data = np.load(npz_path)
-        input_data = list(zip(*data['input']))
+    if os.path.isfile(data_path):
+        print("Reading from cache " + data_path + "...")
 
-        x = np.array(input_data[0])
-        y = np.array(input_data[1])
+        with h5py.File(data_path, 'r') as hf:
+            x = hf['x'][:]
+            y = hf['y'][:]
 
         return x, y
     else:
         x = []
         y = []
-        for label, label_value in labels.items():
+        for label, label_value in classes.items():
             label_directory = "{root_path}/{label}".format(root_path=directory, label=label)
             files = [f for f in os.listdir(label_directory) if os.path.isfile(os.path.join(label_directory, f)) and f.endswith(extension)]
             for f in tqdm(files, miniters=10):
@@ -73,8 +70,11 @@ def load_data(directory, labels, width, height, extension, dargumentation_enable
 
         x = np.array(x, np.float32)
         y = np.array(y, np.uint8)
-        data = np.array(list(zip(x, y)))
-        np.savez_compressed(npz_path, input=data)
+
+        with h5py.File(data_path, 'w') as hf:
+            hf.create_dataset("x", data=x)
+            hf.create_dataset("y", data=y)
+
         return x, y
 
 

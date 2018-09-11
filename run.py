@@ -1,13 +1,11 @@
 # -*- encoding=UTF-8-*-
 
-import numpy as np
 import sys
+import numpy as np
 from skimage.util import img_as_float
 import matplotlib.patches as patches
 from matplotlib import pyplot as plt
-
 import tensorflow as tf
-
 from sklearn.model_selection import train_test_split
 from skimage import io, exposure
 
@@ -18,16 +16,15 @@ image_width = 256
 image_height = 256
 channels = 4
 extension = '.tif'
-labels = {
-    'pivot': 0,
-    'infra': 1,
+classes = {
+    'pivot': 1,
+    'others': 2,
 }
-num_classes = len(labels)
+num_classes = len(classes)
 weights_path = "weights"
 
-
 def train(model, epochs=200, batch_size=20):
-    features, target = image_utils.load_data("/mnt/data/train", labels, image_width, image_height, extension, dargumentation_enabled=True)
+    features, target = image_utils.load_data("data/train", classes, image_width, image_height, extension, dargumentation_enabled=True)
     train_data, eval_data, train_labels, eval_labels = train_test_split(features, target, test_size=0.2)
 
     print('Split train: ', len(train_data))
@@ -57,7 +54,7 @@ def train(model, epochs=200, batch_size=20):
         print(eval_results)
 
 def evaluate(model):
-    validation_features, validation_target = image_utils.load_data("data/validation", labels, image_width, image_height, extension)
+    validation_features, validation_target = image_utils.load_data("data/validation", classes, image_width, image_height, extension)
 
     classifier = tf.estimator.Estimator(model_fn=model, model_dir=weights_path)
 
@@ -75,11 +72,11 @@ def predict(model, path):
     stepSize = 100
     batch_size = 5
     windows_list = (
-        [int(image_width * 0.25), int(image_height * 0.25)],
-        [int(image_width * 0.5), int(image_height * 0.5)],
+        #[int(image_width * 0.25), int(image_height * 0.25)],
+        #[int(image_width * 0.5), int(image_height * 0.5)],
         [image_width, image_height],
-        [int(image_width * 1.5), int(image_height * 1.5)],
-        [int(image_width * 1.75), int(image_height * 1.75)],
+        #[int(image_width * 1.5), int(image_height * 1.5)],
+        #[int(image_width * 1.75), int(image_height * 1.75)],
     )
 
     classifier = tf.estimator.Estimator(model_fn=model, model_dir=weights_path)
@@ -146,7 +143,7 @@ def predict(model, path):
                     prediction = prob[np.argmax(prob)]
                     print("Label: {0} --> Prediction: {1}".format(label, prediction))
 
-                    if label == labels.get("pivot") and prediction > 0.50:
+                    if label == classes.get("pivot") and prediction > 0.50:
                         rect = patches.Rectangle((position[0], position[1]), width, height, linewidth=1,
                                                  edgecolor='r', color='y', facecolor='none')
                     else:
