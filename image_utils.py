@@ -48,7 +48,7 @@ def load_data(directory, classes, width, height, extension, dargumentation_enabl
         with h5py.File(data_path, 'r') as hf:
             x = hf['x'][:]
             y = hf['y'][:]
-
+        print("Completed!!!")
         return x, y
     else:
         x = []
@@ -74,7 +74,7 @@ def load_data(directory, classes, width, height, extension, dargumentation_enabl
         with h5py.File(data_path, 'w') as hf:
             hf.create_dataset("x", data=x)
             hf.create_dataset("y", data=y)
-
+        print("Completed!!!")
         return x, y
 
 

@@ -18,12 +18,12 @@ channels = 4
 extension = '.tif'
 classes = {
     'pivot': 0,
-    'others': 1,
+    'infra': 1,
 }
 num_classes = len(classes)
 weights_path = "weights"
 
-def train(model, epochs=200, batch_size=50):
+def train(model, epochs=200, batch_size=100):
     features, target = image_utils.load_data("data/train", classes, image_width, image_height, extension, dargumentation_enabled=True)
     #train_data, eval_data, train_labels, eval_labels = train_test_split(features, target, test_size=0.2)
 
