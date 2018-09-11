@@ -3,8 +3,8 @@
 import sys
 import numpy as np
 from skimage.util import img_as_float
-import matplotlib.patches as patches
-from matplotlib import pyplot as plt
+#import matplotlib.patches as patches
+#from matplotlib import pyplot as plt
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from skimage import io, exposure
@@ -17,41 +17,41 @@ image_height = 256
 channels = 4
 extension = '.tif'
 classes = {
-    'pivot': 1,
-    'others': 2,
+    'pivot': 0,
+    'others': 1,
 }
 num_classes = len(classes)
 weights_path = "weights"
 
-def train(model, epochs=200, batch_size=20):
+def train(model, epochs=200, batch_size=50):
     features, target = image_utils.load_data("data/train", classes, image_width, image_height, extension, dargumentation_enabled=True)
-    train_data, eval_data, train_labels, eval_labels = train_test_split(features, target, test_size=0.2)
+    #train_data, eval_data, train_labels, eval_labels = train_test_split(features, target, test_size=0.2)
 
-    print('Split train: ', len(train_data))
-    print('Split test: ', len(eval_data))
+    #print('Split train: ', len(train_data))
+    #print('Split test: ', len(eval_data))
 
     classifier = tf.estimator.Estimator(model_fn=model, model_dir=weights_path)
     logging_hook = tf.train.LoggingTensorHook(tensors={"probabilities": "softmax_tensor"}, every_n_iter=50)
 
     train_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x={"x": train_data},
-        y=np.asarray(train_labels, dtype=np.int32),
+        x={"x": features},
+        y=np.asarray(target, dtype=np.int32),
         batch_size=batch_size,
-        num_epochs=1,
+        num_epochs=epochs,
         shuffle=True
     )
 
-    eval_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x={"x": eval_data},
-        y=np.asarray(eval_labels, dtype=np.int32),
-        num_epochs=1,
-        shuffle=False)
+    #eval_input_fn = tf.estimator.inputs.numpy_input_fn(
+    #    x={"x": eval_data},
+    #    y=np.asarray(eval_labels, dtype=np.int32),
+    #    num_epochs=1,
+    #   shuffle=False)
 
-    for epoch in range(1, epochs + 1):
-        print("EPOCH:", epoch)
-        classifier.train(input_fn=train_input_fn, steps=20000, hooks=[logging_hook])
-        eval_results = classifier.evaluate(input_fn=eval_input_fn)
-        print(eval_results)
+    #for epoch in range(1, epochs + 1):
+    #print("EPOCH:", epoch)
+    classifier.train(input_fn=train_input_fn, hooks=[logging_hook])
+    #eval_results = classifier.evaluate(input_fn=eval_input_fn)
+    #print(eval_results)
 
 def evaluate(model):
     validation_features, validation_target = image_utils.load_data("data/validation", classes, image_width, image_height, extension)
@@ -169,7 +169,7 @@ config = tf.ConfigProto(gpu_options=gpu_options)
 config.gpu_options.allow_growth = True
 
 with tf.Session(config=config) as sess:
-    model = models.get_model(image_width, image_height, channels, num_classes)
+    model = models.get_model(image_width, image_height, channels, num_classes, learning_rate=0.00001)
 
     if mode == 'train':
         train(model)
